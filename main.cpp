@@ -100,11 +100,10 @@ int main (int argc, char** argv) {
                 }
                 break;
             case ',':
-                cin >> input;
-                memory[pos] = (int)input;
+                memory[pos] = cin.get();
                 break;
             case '.':
-                cout << (char)memory[pos];
+                cout.put( memory[pos] );
                 break;
 
         }
