@@ -5,13 +5,13 @@
 Brainfuck is the ungodly creation of Urban Müller, whose goal was apparently to
 create a Turing-complete language for which he could write the smallest
 compiler ever, for the Amiga OS 2.0. His compiler was 240 bytes in size.
-(Though he improved upon this later -- he informed me at one point that he had
+(Though he improved upon this later -- he informed at one point that he had
 managed to bring it under 200 bytes.)
 
-I originally started playing around with Brainfuck because of my own interest
-in writing very small programs for x86 Linux. I also used it as a vehicle for
-writing a program that created ELF files. Eventually, however, I too succumbed
-to the Imp of the Perverse and wrote some actual Brainfuck programs of my own.
+One evening at Yahoo! office I introduced snit-ram (Rafael Martins) to brainfuck
+and the next day he came up with a brianfuck calculator. The same day we started
+this project to build a full abstraction stack from brainfuck up to a higher level
+language.
 
 ## The Language
 
