@@ -9,7 +9,7 @@ compiler ever, for the Amiga OS 2.0. His compiler was 240 bytes in size.
 managed to bring it under 200 bytes.)
 
 One evening at Yahoo! office I introduced snit-ram (Rafael Martins) to brainfuck
-and the next day he came up with a brianfuck calculator. The same day we started
+and the next day he came up with a brainfuck calculator. The same day we started
 this project to build a full abstraction stack from brainfuck up to a higher level
 language.
 
