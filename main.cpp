@@ -4,6 +4,7 @@
 #include <iostream>
 
 #define MEMORY_SIZE 2048
+#define MAX_VALUE 32768
 
 using namespace std;
 
@@ -93,10 +94,11 @@ int main (int argc, char** argv) {
                 while ( pos < 0) { pos += MEMORY_SIZE; }
                 break;
             case '+':
-                memory[pos] += instruction.data.repetition;
+                memory[pos] = (memory[pos] + instruction.data.repetition) % MAX_VALUE;
                 break;
             case '-':
                 memory[pos] -= instruction.data.repetition;
+                while ( memory[pos] < 0) { memory[pos] += MAX_VALUE; }
                 break;
             case '[':
                 if (memory[pos] == 0) {
