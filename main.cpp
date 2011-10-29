@@ -6,6 +6,22 @@
 #define MEMORY_SIZE 2048
 #define MAX_VALUE 32768
 
+#include <termios.h>
+#include <unistd.h>
+
+int mygetch(void){
+    struct termios oldt, newt;
+    int ch;
+    tcgetattr( STDIN_FILENO, &oldt );
+    newt = oldt;
+    newt.c_lflag &= ~( ICANON | ECHO );
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt );
+    ch = getchar();
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
+    return ch;
+}
+
+
 using namespace std;
 
 typedef struct {
@@ -41,7 +57,7 @@ int main (int argc, char** argv) {
     process = 0;
     while (! file.eof() ) {
         c = file.get();
-        if (c == '<' || c == '>' || c == '+' || c == '-' || c == '.' || 
+        if (c == '<' || c == '>' || c == '+' || c == '-' || c == '.' ||
             c == ',' || c == '[' || c == ']') {
 
             if (c == last_c && c != '[' && c != ']') {
@@ -114,7 +130,7 @@ int main (int argc, char** argv) {
                 if (instruction.data.repetition > 1) {
                     cin.ignore( instruction.data.repetition - 1 );
                 }
-                memory[pos] = cin.get();
+                memory[pos] = mygetch();
                 break;
             case '.':
                 for (unsigned int i=0; i < instruction.data.repetition; i++) {
