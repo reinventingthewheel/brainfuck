@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iostream>
 
-#define MEMORY_SIZE 2048
 #define MAX_VALUE 32768
 
 #include <termios.h>
@@ -38,7 +37,7 @@ int main (int argc, char** argv) {
 
     vector<instruction_t> program;
     stack<unsigned int> loop_match;
-    vector<int> memory(MEMORY_SIZE, 0);
+    vector<int> memory( MAX_VALUE, 0);
     fstream file;
     instruction_t instruction;
     unsigned int pos = 0;
@@ -103,11 +102,11 @@ int main (int argc, char** argv) {
         instruction = program[ process ];
         switch (instruction.command) {
             case '>':
-                pos = (pos + instruction.data.repetition) % MEMORY_SIZE;
+                pos = (pos + instruction.data.repetition) % MAX_VALUE;
                 break;
             case '<':
                 pos -= instruction.data.repetition;
-                while ( pos < 0) { pos += MEMORY_SIZE; }
+                while ( pos < 0) { pos += MAX_VALUE; }
                 break;
             case '+':
                 memory[pos] = (memory[pos] + instruction.data.repetition) % MAX_VALUE;
