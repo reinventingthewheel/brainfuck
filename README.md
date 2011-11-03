@@ -16,9 +16,10 @@ language.
 ## The Language
 
 A Brainfuck program has an implicit byte pointer, called "the pointer", which
-is free to move around within an array of 30000 bytes, initially all set to
-zero. The pointer itself is initialized to point to the beginning of this
-array.
+is free to move around within an array of integers, initially all set to zero.
+The pointer itself is initialized to point to the beginning of this array.
+Although there is no such thing as beginning because the array is actually a
+circular tape (i.e. the pointer can loop back over and over).
 
 The Brainfuck programming language consists of eight commands, each of which is
 represented as a single character.
@@ -34,7 +35,7 @@ represented as a single character.
 
 The semantics of the Brainfuck commands can also be succinctly expressed in
 terms of C, as follows (assuming that p has been previously defined as a
-`char*`):
+`int*`):
 
 * `>`   becomes     `++p;`
 * `<`   becomes     `--p;`
