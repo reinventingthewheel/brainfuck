@@ -31,6 +31,7 @@ typedef struct {
     union {
         unsigned int match;
         unsigned int repetition;
+        int operand;
     }
     data;
 }
@@ -48,6 +49,88 @@ bool compare_pattern (pattern_t first, pattern_t second){
     return first.position < second.position;
 }
 
+void find_zeroing_patterns(list<pattern_t> &patterns, string &source){
+    // [+] or [-]
+
+    regex zeroing_pattern ("\\[(\\+|-)\\]");
+    smatch match;
+    pattern_t pattern;
+    regex_iterator<string::iterator> rit ( source.begin(), source.end(), zeroing_pattern);
+    regex_iterator<string::iterator> rend;
+
+    while (rit!=rend) {
+        pattern.type = '0';
+        pattern.operand = 0;
+        pattern.position = rit->position();
+        pattern.length = rit->length();
+        patterns.push_back(pattern);
+        ++rit;
+    }
+}
+
+void find_transfer_patterns(list<pattern_t> &patterns, string &source){
+    /* transfer patterns [+>>-<<] or [->>+<<] or [>>-<<+] or [>>+<<-]
+    [+<<->>] or [-<<+>>] or [<<->>+] or [<<+>>-]
+    */
+    regex transfer_pattern ("\\[(?:(?:[+\\-][><]+[+\\-][><]+)|(?:[><]+[+\\-][><]+[+\\-]))\\]");
+
+    smatch match;
+    pattern_t pattern;
+    regex_iterator<string::iterator> rit ( source.begin(), source.end(), transfer_pattern);
+    regex_iterator<string::iterator> rend;
+
+    while (rit!=rend) {
+        string found = rit->str();
+        int left_count = 0, right_count = 0;
+        bool is_transfer = true, invert_direction = false;
+        char direction = '\0';
+        char first_operation = '\0';
+        char c;
+        for(int i = 0; i < found.size(); i++){
+            c = found[i];
+            if(c == '>' || c == '<'){
+                if(direction == '\0'){
+                    direction = c;
+                }else if((c == direction && invert_direction)
+                        || (c != direction && !invert_direction)){
+                    is_transfer = false;
+                    break;
+                }
+
+                if(c == '>'){
+                    right_count++;
+                }else{
+                    left_count++;
+                }
+            }else if(c == '+' || c == '-'){
+                if(first_operation == '\0'){
+                    first_operation = c;
+                }else if(first_operation == c){
+                    is_transfer = false;
+                    break;
+                }
+
+                if(direction != '\0'){
+                    invert_direction = true;
+                }
+            }
+        }
+
+        if(left_count != right_count){
+            is_transfer = false;
+        }
+
+        if(is_transfer){
+            pattern.type = 'T';
+            pattern.operand = left_count * (direction == '<' ? -1 : 1);
+            pattern.position = rit->position();
+            pattern.length = rit->length();
+            patterns.push_back(pattern);
+        }
+        ++rit;
+    }
+}
+
 int main (int argc, char** argv) {
     vector<instruction_t> program;
     list<pattern_t> patterns;
@@ -62,8 +145,6 @@ int main (int argc, char** argv) {
     string source;
     string line;
 
-    smatch match;
-    regex zeroing_pattern ("\\[(\\+|-)\\]");
 
     if (argc >= 2) {
         file.open( argv[1], fstream::in);
@@ -82,26 +163,9 @@ int main (int argc, char** argv) {
     }
     file.close();
 
-    regex_iterator<string::iterator> rit ( source.begin(), source.end(), zeroing_pattern);
-    regex_iterator<string::iterator> rend;
+    find_zeroing_patterns(patterns, source);
+    find_transfer_patterns(patterns, source);
 
-    while (rit!=rend) {
-        pattern.type = '0';
-        pattern.operand = 0;
-        pattern.position = rit->position();
-        pattern.length = rit->length();
-        patterns.push_back(pattern);
-        ++rit;
-    }
-
-    /*rit = regex_iterator<string::iterator> ( source.begin(), source.end(), zeroing_pattern);
-    rend = regex_iterator<string::iterator> ();
-
-    while (rit!=rend) {
-        cout << rit->position() << endl;
-        cout << rit->length() << endl;
-        ++rit;
-    }*/
 
     patterns.sort(compare_pattern);
 
@@ -115,8 +179,10 @@ int main (int argc, char** argv) {
                 patterns.pop_front();
                 instruction.command = pattern.type;
                 instruction.data.repetition = 1;
+                instruction.data.operand = pattern.operand;
                 program.push_back(instruction);
                 process ++;
+                last_c = '\0';
                 i += pattern.length - 1;
                 continue;
             }
@@ -161,8 +227,8 @@ int main (int argc, char** argv) {
 
     process = 0;
     while (process < program.size()) {
-
         instruction = program[ process ];
+
         switch (instruction.command) {
             case '>':
                 pos = (pos + instruction.data.repetition) % MAX_VALUE;
@@ -205,7 +271,10 @@ int main (int argc, char** argv) {
             case '0':
                 memory[pos] = 0;
                 break;
-
+            case 'T':
+                memory[pos + instruction.data.operand] = memory[pos];
+                memory[pos] = 0;
+                break;
         }
         process ++;
     }
