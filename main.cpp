@@ -69,10 +69,14 @@ void find_zeroing_patterns(list<pattern_t> &patterns, string &source){
 }
 
 void find_transfer_patterns(list<pattern_t> &patterns, string &source){
-    /* transfer patterns [+>>-<<] or [->>+<<] or [>>-<<+] or [>>+<<-]
-    [+<<->>] or [-<<+>>] or [<<->>+] or [<<+>>-]
+    /* transfer patterns [->>>+<<<] or [>>>-<<<+] or [-<<<+>>>] or [<<<->>>+]
     */
-    regex transfer_pattern ("\\[(?:(?:[+\\-][><]+[+\\-][><]+)|(?:[><]+[+\\-][><]+[+\\-]))\\]");
+    regex transfer_pattern (
+        "(?:\\[->+\\+<+\\])"  "|"
+        "(?:\\[>+-<+\\+\\])"  "|"
+        "(?:\\[-<+\\+>+\\])"  "|"
+        "(?:\\[<+->+\\+\\])"
+    );
 
     smatch match;
     pattern_t pattern;
@@ -82,19 +86,13 @@ void find_transfer_patterns(list<pattern_t> &patterns, string &source){
     while (rit!=rend) {
         string found = rit->str();
         int left_count = 0, right_count = 0;
-        bool is_transfer = true, invert_direction = false;
         char direction = '\0';
-        char first_operation = '\0';
         char c;
         for(int i = 0; i < found.size(); i++){
             c = found[i];
             if(c == '>' || c == '<'){
                 if(direction == '\0'){
                     direction = c;
-                }else if((c == direction && invert_direction)
-                        || (c != direction && !invert_direction)){
-                    is_transfer = false;
-                    break;
                 }
 
                 if(c == '>'){
@@ -102,25 +100,10 @@ void find_transfer_patterns(list<pattern_t> &patterns, string &source){
                 }else{
                     left_count++;
                 }
-            }else if(c == '+' || c == '-'){
-                if(first_operation == '\0'){
-                    first_operation = c;
-                }else if(first_operation == c){
-                    is_transfer = false;
-                    break;
-                }
-
-                if(direction != '\0'){
-                    invert_direction = true;
-                }
             }
         }
 
         if(left_count != right_count){
-            is_transfer = false;
-        }
-
-        if(is_transfer){
             pattern.type = 'T';
             pattern.operand = left_count * (direction == '<' ? -1 : 1);
             pattern.position = rit->position();
