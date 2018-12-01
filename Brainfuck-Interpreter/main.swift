@@ -331,7 +331,7 @@ extension Expression {
             let sourceIndex = program.memory.pointer
             let sourceValue = program.memory[sourceIndex]
             
-            guard sourceIndex != 0 else {
+            guard sourceValue != 0 else {
                 return
             }
             
