@@ -310,7 +310,8 @@ extension Expression {
             program.memory.value -= count
             
         case .print:
-            guard let character = UnicodeScalar(Int(program.memory.value)).map(Character.init) else {
+            guard program.memory.value > 0,
+                let character = UnicodeScalar(program.memory.value).map(Character.init) else {
                 return
             }
             
@@ -329,6 +330,10 @@ extension Expression {
         case .transfer(to: let destinations):
             let sourceIndex = program.memory.pointer
             let sourceValue = program.memory[sourceIndex]
+            
+            guard sourceIndex != 0 else {
+                return
+            }
             
             destinations.forEach { destination in
                 let index = sourceIndex + destination.offset
