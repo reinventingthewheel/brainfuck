@@ -349,8 +349,9 @@ extension Brainfuck: CustomStringConvertible {
 }
 
 class ConsoleStream: TextOutputStream {
+    private let fileHandle = FileHandle.standardOutput
     func write(_ string: String) {
-        print(string, separator: "", terminator: "")
+        fileHandle.write(string.data(using: .utf8)!)
     }
 }
 
