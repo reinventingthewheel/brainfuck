@@ -45,6 +45,7 @@ enum Expression {
     // optimizations
     case reset
     case transfer(to: [ValueTransferDestination])
+    case dynamicTransfer(expressions: [Expression])
 }
 
 extension Expression: CustomStringConvertible {
@@ -70,6 +71,9 @@ extension Expression: CustomStringConvertible {
             
         case .transfer(to: let locations):
             return "T(" + locations.map { $0.description }.joined(separator: ", ") + ")"
+            
+        case .dynamicTransfer(expressions: let expressions):
+            return "D(" + expressions.map {$0.description}.joined(separator: " ") + ")"
             
         case .reset:
             return "0"
@@ -188,7 +192,7 @@ class Brainfuck {
     }
     
     static func optimized(_ expressions: [Expression]) -> [Expression] {
-        return optimizeTransfers(optimizeResets(merged(expressions)))
+        return optimizeDynamicTransfers(optimizeTransfers(optimizeResets(merged(expressions))))
     }
     
     static func optimizeResets(_ expressions: [Expression]) -> [Expression] {
@@ -261,6 +265,88 @@ class Brainfuck {
                     return transfer
                 }
                 return .loop(expressions: optimizeTransfers(innerExpressions))
+            default:
+                return expression
+            }
+        }
+    }
+    
+    static func dynamicTransfer(from expressions: [Expression]) -> Expression? {
+        guard !expressions.isEmpty else {
+            return nil
+        }
+        
+        var destinations: [Int: ValueTransferDestination] = [:]
+        func add(_ count: Int, to offset: Int) {
+            let defaultDestination = ValueTransferDestination(
+                offset: offset,
+                multiplier: 0
+            )
+            destinations[offset, default: defaultDestination].multiplier += count
+        }
+        
+        var offset = 0
+        var offsetsDict: [Int: Int] = [:]
+        var immutableOffsets: Set<Int> = Set()
+        for expression in expressions {
+            switch expression {
+            case .increment(count: let count):
+                add(count, to: offset)
+                
+            case .decrement(count: let count):
+                add(-count, to: offset)
+                
+            case .left(count: let count):
+                offset -= count
+                
+            case .right(count: let count):
+                offset += count
+                
+            case .loop(expressions: let loopExpressions):
+                guard loopExpressions.count == 1 else {
+                    return nil
+                }
+                if case Expression.left(count: let count) = loopExpressions[0] {
+                    offsetsDict[offset, default: 0] -= count
+                    let range = (offset-count)...offset
+                    immutableOffsets.formUnion(range)
+                    offset -= count
+                } else if case Expression.right(count: let count) = loopExpressions[0] {
+                    offsetsDict[offset, default: 0] += count
+                    let range = offset...(offset+count)
+                    immutableOffsets.formUnion(range)
+                    offset += count
+                }
+            default:
+                return nil
+            }
+        }
+        
+        // well formed transfers return to initial position
+        guard offset == 0,
+            let startingPosition = destinations[0],
+            // well formed transfers increment or decrement the initial position by 1
+            abs(startingPosition.multiplier) == 1,
+            
+            // all dynamic offsets should be reversed. example. If theres a [>>>] @ index 17, there should be a [<<<] also at 17
+            offsetsDict.values.allSatisfy({ $0 == 0}),
+        
+            // no offsets that are part of a dynamic movement should be modified
+            immutableOffsets.intersection(destinations.keys).isEmpty else {
+                return nil
+        }
+        
+        return Expression.dynamicTransfer(expressions: expressions)
+    }
+    
+    static func optimizeDynamicTransfers(_ expressions: [Expression]) -> [Expression] {
+        return expressions.map { expression in
+            switch expression {
+            case .loop(expressions: let innerExpressions):
+                if let transfer = self.dynamicTransfer(from: innerExpressions) {
+                    return transfer
+                }
+                return .loop(expressions: optimizeDynamicTransfers(innerExpressions))
             default:
                 return expression
             }
@@ -346,6 +432,32 @@ extension Expression {
             destinations.forEach { destination in
                 let index = sourceIndex + destination.offset
                 program.memory[index] += sourceValue * destination.multiplier
+            }
+            
+        case .dynamicTransfer(expressions: let expressions):
+//            Swift.print("***")
+            if program.memory.value != 0 {
+                var destinations: [Int: ValueTransferDestination] = [:]
+                
+                let sourceIndex = program.memory.pointer
+                
+                expressions.forEach { expression in
+                    let before = (index: program.memory.pointer, value: program.memory.value)
+                    expression.run(program: program)
+                    let after = (index: program.memory.pointer, value: program.memory.value)
+                    
+                    if before.index == after.index,
+                        before.value != after.value {
+                        let offset = program.memory.pointer - sourceIndex
+                        let defaultTransfer = ValueTransferDestination(offset: offset, multiplier: 0)
+                        let valueChange = after.value - before.value
+                        destinations[offset, default: defaultTransfer].multiplier += valueChange
+                    }
+                }
+                
+                let transfer = Expression.transfer(to: Array(destinations.values))
+//                Swift.print(transfer.description)
+                transfer.run(program: program)
             }
             
         //optimizations
