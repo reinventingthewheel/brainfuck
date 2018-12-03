@@ -110,7 +110,15 @@ class Memory {
             return self[pointer]
         }
         set {
-            self[pointer] = newValue
+            if newValue == maxValue {
+                self[pointer] = 0
+            } else if newValue > maxValue {
+                self[pointer] = newValue % maxValue
+            } else if newValue < 0 {
+                self[pointer] = maxValue + newValue
+            } else {
+                self[pointer] = newValue
+            }
         }
     }
     
@@ -310,7 +318,7 @@ extension Expression {
             program.memory.value -= count
             
         case .print:
-            guard program.memory.value > 0,
+            guard program.memory.value < maxValue / 2,
                 let character = UnicodeScalar(program.memory.value).map(Character.init) else {
                 return
             }
