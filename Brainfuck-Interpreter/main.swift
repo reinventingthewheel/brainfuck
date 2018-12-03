@@ -435,7 +435,6 @@ extension Expression {
             }
             
         case .dynamicTransfer(expressions: let expressions):
-//            Swift.print("***")
             if program.memory.value != 0 {
                 var destinations: [Int: ValueTransferDestination] = [:]
                 
@@ -456,7 +455,6 @@ extension Expression {
                 }
                 
                 let transfer = Expression.transfer(to: Array(destinations.values))
-//                Swift.print(transfer.description)
                 transfer.run(program: program)
             }
             
